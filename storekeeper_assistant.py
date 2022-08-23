@@ -5,6 +5,8 @@ from tkinter import filedialog as fd
 import openpyxl as op
 from openpyxl.styles import Side, Border
 
+import mistake
+
 
 class Application(tk.Tk):
 
@@ -35,6 +37,9 @@ class Application(tk.Tk):
         self.header['font'] = 'Arial', 12, 'italic'
         self.header.place(x=50, y=50)
 
+        OPERATION_WAS_NOT_PERFORMED = {'Данная операция не выполнялась.': ''}
+        self.MISTAKES_NOT_FOUND = {'Ошибки не обнаружены': ''}
+
         self.check_button_search_sku_in_two_places_value = tk.IntVar()
         self.check_button_search_sku_in_two_places = tk.Checkbutton(
             variable=self.check_button_search_sku_in_two_places_value,
@@ -43,6 +48,7 @@ class Application(tk.Tk):
         self.check_button_search_sku_in_two_places[
             'text'] = '  Найти товар, размещенный в двух и более ячейках отгрузки'
         self.check_button_search_sku_in_two_places.place(x=10, y=80)
+        self.duplicates_result = OPERATION_WAS_NOT_PERFORMED
 
         self.check_button_search_two_or_more_sku_in_one_place_value = tk.IntVar()
         self.check_button_search_two_or_more_sku_in_one_place = tk.Checkbutton(
@@ -52,26 +58,16 @@ class Application(tk.Tk):
         self.check_button_search_two_or_more_sku_in_one_place[
             'text'] = '  Найти ячейки, в которых больше одного вида товара'
         self.check_button_search_two_or_more_sku_in_one_place.place(x=10, y=110)
+        self.wrong_place = OPERATION_WAS_NOT_PERFORMED
 
-        # check_box_3 = tk.Checkbutton()
-        # check_box_3['text'] = '  Найти пустые нижние ячейки на складах отгрузки (НЕ ГОТОВО)'
-        # check_box_3.place(x=10, y=140)
-        #
-        # check_box_4 = tk.Checkbutton()
-        # check_box_4['text'] = '  Найти пустые ячейки на складах хранения (НЕ ГОТОВО)'
-        # check_box_4.place(x=10, y=170)
-        #
-        # check_box_5 = tk.Checkbutton()
-        # check_box_5['text'] = '  Найти паллеты в продаже на местах хранения (НЕ ГОТОВО)'
-        # check_box_5.place(x=10, y=200)
-        #
-        # check_box_6 = tk.Checkbutton()
-        # check_box_6['text'] = '  Найти паллеты без места (НЕ ГОТОВО)'
-        # check_box_6.place(x=10, y=230)
-        #
-        # check_box_7 = tk.Checkbutton()
-        # check_box_7['text'] = '  Найти товар, отсутствующий в продаже (НЕ ГОТОВО)'
-        # check_box_7.place(x=10, y=260)
+        self.check_search_cells_empty_value = tk.IntVar()
+        self.check_search_cells_empty = tk.Checkbutton(
+            variable=self.check_search_cells_empty_value,
+            offvalue=0,
+            onvalue=1)
+        self.check_search_cells_empty['text'] = '  Найти пустые нижние ячейки на складах отгрузки'
+        self.check_search_cells_empty.place(x=10, y=140)
+        self.cells_empty = OPERATION_WAS_NOT_PERFORMED
 
         self.header_2 = tk.Label()
         self.header_2['text'] = 'Если хотите сформировать отчет для пополнения склада отгрузки, \n поставьте галочку ' \
@@ -138,9 +134,11 @@ class Application(tk.Tk):
         self.open_file(self.file_name_bb)  # Остатки АТ по партиям
         self.open_file(self.file_name_cb)  # Текущие остатки
         if self.check_button_search_sku_in_two_places_value.get():
-            self.search_sku_in_two_places()
+            self.duplicates_result = mistake.search_sku_in_two_places(self.file_balance_batch)
         if self.check_button_search_two_or_more_sku_in_one_place_value.get():
-            self.search_two_or_more_sku_in_one_place()
+            self.wrong_place = mistake.search_two_or_more_sku_in_one_place(self.file_balance_batch)
+        if self.check_search_cells_empty_value.get():
+            self.cells_empty = mistake.search_cells_empty(self.file_balance_batch)
         if self.check_button_fill_storage_value.get():
             # файл 'текущие остатки'
             report_406 = self.file_balance_current
@@ -148,54 +146,19 @@ class Application(tk.Tk):
             report_437 = op.load_workbook(self.file_path_cb)
             self.create_report(report_437, '437')
         self.fill_errors()
-        self.save_file()
+        self.destroy()
 
-    def search_sku_in_two_places(self):  # -> dict:
-        row = 4
-        rows = self.file_balance_batch.active.max_row - row
-        duplicates_temp = dict()
-        for i in range(rows + 1):
-            cell_value = self.file_balance_batch.active.cell(row, 2).value
-            if isinstance(cell_value, str):
-                temp_list = cell_value.split(', ')
-            else:
-                row += 1
-                continue
-            sku = self.file_balance_batch.active.cell(row, 4).value.split('.')[0]  # sku without batch
-            if sku not in duplicates_temp.keys():
-                duplicates_temp[sku] = temp_list
-                row += 1
-            else:
-                for t in temp_list:
-                    if t not in duplicates_temp[sku]:
-                        duplicates_temp[sku].append(t)
-                row += 1
-        self.duplicates_result = dict()
-        for k, v in duplicates_temp.items():
-            if len(v) > 1:
-                self.duplicates_result[k] = v
+    def create_report(self, report, warehouse):
+        if warehouse == '406':
+            report.active.delete_cols(19, 16)
+            report.active.delete_cols(4, 13)
+        else:
+            report.active.delete_cols(21, 14)
+            report.active.delete_cols(4, 15)
 
-    def search_two_or_more_sku_in_one_place(self):
-        row = 4
-        col = 1
-        rows = self.file_balance_batch.active.max_row - row
-        cells_duplicate_temp = dict()
-        for i in range(rows + 1):
-            cell_value = self.file_balance_batch.active.cell(row, col).value
-            if isinstance(cell_value, str):
-                temp_list = cell_value.split(', ')
-                for t in temp_list:
-                    cells_duplicate_temp[t] = cells_duplicate_temp.get(t, 0) + 1
-                row += 1
-            else:
-                row += 1
-                continue
-
-        cells_duplicate = dict()
-        for k, v in cells_duplicate_temp.items():
-            if v > 1:
-                cells_duplicate[k] = v
-        return cells_duplicate
+        report = self.prepare_file(report)
+        report = self.fill_report(report)
+        report.save(f'Отчет от {datetime.today().strftime("%d.%m.%y %H_%M_%S")} ({warehouse}).xlsx')
 
     # prepare file for preview
     def prepare_file(self, file):
@@ -235,13 +198,6 @@ class Application(tk.Tk):
             row += 1
         return file
 
-    def create_cells_list(self, cells_list, cells_set):
-        cells_list = cells_list.split(', ')
-        for cell in cells_list:
-            if cell not in cells_set:
-                cells_set.append(cell)
-        return cells_set
-
     def fill_report(self, file):
         # файл 'остатки АТ по партиям'
         cells_file = self.file_balance_batch
@@ -277,17 +233,9 @@ class Application(tk.Tk):
                 cells_405_list = cells_file.active.cell(row_406, 1).value
                 if cells_405_list is not None:
                     cells_405_set = self.create_cells_list(cells_405_list, cells_405_set)
-                    # cells_405_list = cells_405_list.split(', ')
-                    # for cell_405 in cells_405_list:
-                    #     if cell_405 not in cells_405_set:
-                    #         cells_405_set.append(cell_405)
                 cells_406_list = cells_file.active.cell(row_406, 2).value
                 if cells_406_list is not None:
                     cells_406_set = self.create_cells_list(cells_406_list, cells_406_set)
-                    # cells_406_list = cells_406_list.split(', ')
-                    # for cell_406 in cells_406_list:
-                    #     if cell_406 not in cells_406_set:
-                    #         cells_406_set.append(cell_406)
                 sku_batch_next = cells_file.active.cell(row_406 + 1, 4).value
                 if sku_batch_next is not None:
                     sku_batch_next = sku_batch_next.split('.')[0]
@@ -321,17 +269,12 @@ class Application(tk.Tk):
                 row_406 += 1
         return file
 
-    def create_report(self, report, warehouse):
-        if warehouse == '406':
-            report.active.delete_cols(19, 16)
-            report.active.delete_cols(4, 13)
-        else:
-            report.active.delete_cols(21, 14)
-            report.active.delete_cols(4, 15)
-
-        report = self.prepare_file(report)
-        report = self.fill_report(report)
-        report.save(f'Отчет от {datetime.today().strftime("%d.%m.%y %H_%M_%S")} ({warehouse}).xlsx')
+    def create_cells_list(self, cells_list, cells_set):
+        cells_list = cells_list.split(', ')
+        for cell in cells_list:
+            if cell not in cells_set:
+                cells_set.append(cell)
+        return cells_set
 
     def fill_errors(self):
         row = 1
@@ -340,6 +283,8 @@ class Application(tk.Tk):
         result.remove(result.active)
         sheet_1 = result.create_sheet('1')
         sheet_1.cell(row=row, column=col).value = 'Товар, размещенный в двух и более ячейках отгрузки'
+        if not self.duplicates_result:
+            self.duplicates_result = self.MISTAKES_NOT_FOUND
         for k, v in self.duplicates_result.items():
             row += 1
             sheet_1.cell(row=row, column=col).value = k
@@ -347,16 +292,30 @@ class Application(tk.Tk):
 
         row += 2
         sheet_1.cell(row=row, column=col).value = 'Ячейки, в которых больше одного вида товара'
-        wrong_place = self.search_two_or_more_sku_in_one_place()
-        for key, value in wrong_place.items():
+        if not self.wrong_place:
+            self.wrong_place = self.MISTAKES_NOT_FOUND
+        for key, value in self.wrong_place.items():
             row += 1
             sheet_1.cell(row=row, column=col).value = key
             sheet_1.cell(row=row, column=col + 1).value = value
 
-        result.save(f'Ошибки от {datetime.today().strftime("%d.%m.%y %H_%M_%S")}.xlsx')
+        row += 2
+        sheet_1.cell(row=row, column=col).value = 'Свободные ячейки'
+        row += 1
+        sheet_1.cell(row=row, column=col).value = 406
+        sheet_1.cell(row=row, column=col + 1).value = 437
+        row_406 = row_437 = row + 1
+        if self.check_search_cells_empty_value.get() == 0:
+            sheet_1.cell(row=row_406, column=col).value = next(iter(self.cells_empty))
+        else:
+            for c_406 in self.cells_empty[0]:
+                sheet_1.cell(row=row_406, column=col).value = c_406
+                row_406 += 1
+            for c_437 in self.cells_empty[1]:
+                sheet_1.cell(row=row_437, column=col + 1).value = c_437
+                row_437 += 1
 
-    def save_file(self):
-        self.destroy()
+        result.save(f'Ошибки от {datetime.today().strftime("%d.%m.%y %H_%M_%S")}.xlsx')
 
 
 app = Application()

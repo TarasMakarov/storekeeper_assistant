@@ -1,6 +1,7 @@
 # storekeeper_assistant
-My first project for my job.
-### Cells for storage in warhouses (Ячейки для хранения на складах)
+My first project for my job.<br>
+Portable application with GUI.
+### Cells for storage in warehouses (Ячейки для хранения на складах)
 #### Warehouse 405 (Склад 405)
 A08-01(26)-51(53)61(63)71(73)<br>
 A09-01(26)-51(53)61(63)71(73)<br>
