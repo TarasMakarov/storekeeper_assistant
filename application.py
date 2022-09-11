@@ -1,12 +1,16 @@
 import tkinter as tk
 from datetime import datetime
 from tkinter import filedialog as fd
-from tkinter.ttk import Notebook
+from tkinter.ttk import Notebook, Combobox
+from tkcalendar import DateEntry
+from babel import numbers
 
 import openpyxl as op
 
 import mistake
 import report
+import warehouses
+import inventory
 
 
 class Application(tk.Tk):
@@ -33,6 +37,14 @@ class Application(tk.Tk):
         self.tabs_control.add(self.foreman, text='Помощник старшего смены')
         self.tabs_control.pack(fill='both', expand=True)
 
+        self.put_widgets_storekeeper()
+        self.put_widgets_foreman()
+
+    def put_widgets_storekeeper(self):  # storekeeper
+
+        OPERATION_WAS_NOT_PERFORMED = {'Данная операция не выполнялась.': ''}
+        self.MISTAKES_NOT_FOUND = {'Ошибки не обнаружены': ''}
+
         self.entry_file_path = tk.Entry(self.storekeeper)
         self.entry_file_path.insert(0, 'Вставьте файл отчета "Остатки АТ по партиям"')
         self.entry_file_path['width'] = 75
@@ -48,9 +60,6 @@ class Application(tk.Tk):
         self.header['text'] = 'Провести следующие операции:'
         self.header['font'] = 'Arial', 12, 'italic'
         self.header.place(x=50, y=50)
-
-        OPERATION_WAS_NOT_PERFORMED = {'Данная операция не выполнялась.': ''}
-        self.MISTAKES_NOT_FOUND = {'Ошибки не обнаружены': ''}
 
         self.check_button_search_sku_in_two_places_value = tk.IntVar()
         self.check_button_search_sku_in_two_places = tk.Checkbutton(
@@ -126,19 +135,19 @@ class Application(tk.Tk):
         self.button_run_actions['command'] = self.run_actions
         self.button_run_actions.place(x=50, y=350)
 
-    # Выбор файла 'Остатки АТ по партиям'
+    # Выбор файла 'Остатки АТ по партиям' storekeeper
     def choose_file(self):
         self.file_name_bb = fd.askopenfilename(filetypes=(('Excel files', '.xlsx'),))
         self.entry_file_path.delete(0, 'end')
         self.entry_file_path.insert(0, self.file_name_bb)
 
-    # Выбор файла 'Текущие остатки'
+    # Выбор файла 'Текущие остатки' storekeeper
     def choose_file_cb(self):
         self.file_name_cb = fd.askopenfilename(filetypes=(("Excel files", ".xlsx"),))
         self.entry_file_current_balance.delete(0, 'end')
         self.entry_file_current_balance.insert(0, self.file_name_cb)
 
-    def open_file(self, file_name):
+    def open_file(self, file_name):  # storekeeper
         sheet = op.load_workbook(file_name).sheetnames[0]
         if sheet == 'tmp':
             self.file_balance_current = op.load_workbook(file_name)  # Открытие файла 'Текущие остатки'
@@ -146,7 +155,7 @@ class Application(tk.Tk):
         else:
             self.file_balance_batch = op.load_workbook(file_name)  # Открытие файла 'Остатки АТ по партиям
 
-    def run_actions(self):
+    def run_actions(self):  # storekeeper
         self.open_file(self.file_name_bb)  # Остатки АТ по партиям
         self.open_file(self.file_name_cb)  # Текущие остатки
         if self.check_button_search_sku_in_two_places_value.get():
@@ -162,10 +171,10 @@ class Application(tk.Tk):
             report.create_report(report_406, self.file_balance_batch, maximum, '406')
             report_437 = op.load_workbook(self.file_path_cb)
             report.create_report(report_437, self.file_balance_batch, maximum, '437')
-        self.fill_errors()
-        # self.destroy()
+        self.fill_mistakes()
+        self.destroy()
 
-    def fill_errors(self):
+    def fill_mistakes(self):  # storekeeper
         row = 1
         col = 1
         result = op.Workbook()
@@ -205,6 +214,151 @@ class Application(tk.Tk):
                 row_437 += 1
 
         result.save(f'Ошибки от {datetime.today().strftime("%d.%m.%y %H_%M_%S")}.xlsx')
+
+    # Выпадающий список ячеек зависит от номера выбранного склада  # foreman
+    def select_cells(self, *args):
+        self.box_cell_start.set('')
+        self.box_cell_finish.set('')
+        self.cells_in_combobox = self.warehouses_and_cells[self.wh.get()]  # все ячейки определенного склада
+        self.box_cell_start['values'] = self.cells_in_combobox
+        self.box_cell_finish['values'] = self.cells_in_combobox
+        self.box_cell_start.current(0)
+        self.box_cell_finish.current(0)
+
+
+    def put_widgets_foreman(self):  # foreman
+
+        self.warehouses_and_cells = {
+            warehouses.warehouse_405: warehouses.cells_all_405, warehouses.warehouse_406: warehouses.cells_all_406,
+            warehouses.warehouse_436: warehouses.cells_all_436, warehouses.warehouse_437: warehouses.cells_all_437}
+
+        self.check_button_inventory_cells_report_value = tk.IntVar()
+        self.check_button_inventory_cells_report = tk.Checkbutton(
+            self.foreman,
+            variable=self.check_button_inventory_cells_report_value,
+            offvalue=0,
+            onvalue=1)
+        self.check_button_inventory_cells_report[
+            'text'] = '  Создать инвентарную ведомость по ячейкам'
+        self.check_button_inventory_cells_report.place(x=10, y=15)
+
+        self.header_inventory_cells = tk.Label(self.foreman)
+        self.header_inventory_cells['text'] = 'Выбрать ячейки для инвентаризации:'
+        self.header_inventory_cells['font'] = 'Arial', 12, 'italic'
+        self.header_inventory_cells.place(x=50, y=50)
+
+        self.label_wh = tk.Label(self.foreman, text='Склад №')
+        self.label_wh.place(x=10, y=80)
+
+        self.wh = tk.StringVar()
+
+        self.box_warehouses = Combobox(self.foreman, values=[warehouses.warehouses[1], warehouses.warehouses[3]],
+                                       textvariable=self.wh, state='readonly')
+        self.box_warehouses.current(0)
+        self.box_warehouses['width'] = 7
+        self.box_warehouses.place(x=65, y=80)
+
+        self.wh.trace('w', self.select_cells)
+
+        self.cells_in_combobox = warehouses.cells_all_406
+
+        self.label_cell_start = tk.Label(self.foreman, text='Начать с ячейки')
+        self.label_cell_start.place(x=160, y=80)
+
+        self.box_cell_start = Combobox(self.foreman, values=self.cells_in_combobox, state='readonly')
+        self.box_cell_start.current(0)
+        self.box_cell_start['width'] = 12
+        self.box_cell_start.place(x=260, y=80)
+
+        self.label_cell_finish = tk.Label(self.foreman, text='Закончить ячейкой')
+        self.label_cell_finish.place(x=385, y=80)
+
+        self.box_cell_finish = Combobox(self.foreman, values=self.cells_in_combobox, state='readonly')
+        self.box_cell_finish.current(0)
+        self.box_cell_finish['width'] = 12
+        self.box_cell_finish.place(x=500, y=80)
+
+        self.entry_file_path_AT = tk.Entry(self.foreman)
+        self.entry_file_path_AT.insert(0, 'Вставьте файл отчета "Остатки АТ по партиям"')
+        self.entry_file_path_AT['width'] = 75
+        self.entry_file_path_AT.place(x=10, y=126)
+
+        self.button_choose_file_AT = tk.Button(self.foreman)
+        self.button_choose_file_AT.place(x=500, y=120)
+        self.button_choose_file_AT['text'] = 'Выберите файл'
+        self.button_choose_file_AT['font'] = 'Arial', 11
+        self.button_choose_file_AT['command'] = self.choose_file_AT
+
+        self.check_button_inventory_supervisor_report_value = tk.IntVar()
+        self.check_button_inventory_supervisor_report = tk.Checkbutton(
+            self.foreman,
+            variable=self.check_button_inventory_supervisor_report_value,
+            offvalue=0,
+            onvalue=1)
+        self.check_button_inventory_supervisor_report[
+            'text'] = '  Создать инвентарную ведомость по ошибкам'
+        self.check_button_inventory_supervisor_report.place(x=10, y=175)
+
+        self.header_inventory_supervisor = tk.Label(self.foreman)
+        self.header_inventory_supervisor['text'] = 'Выбрать даты для инвентаризации:'
+        self.header_inventory_supervisor['font'] = 'Arial', 12, 'italic'
+        self.header_inventory_supervisor.place(x=50, y=200)
+
+        self.label_date_start = tk.Label(self.foreman, text='С')
+        self.label_date_start.place(x=20, y=230)
+
+        self.entry_date_start = DateEntry(self.foreman, date_pattern='dd-mm-YYYY')
+        self.entry_date_start.place(x=35, y=230)
+
+        self.label_date_finish = tk.Label(self.foreman, text='По')
+        self.label_date_finish.place(x=150, y=230)
+
+        self.entry_date_finish = DateEntry(self.foreman, date_pattern='dd-mm-YYYY')
+        self.entry_date_finish.place(x=170, y=230)
+
+        self.entry_file_path_supervisor = tk.Entry(self.foreman)
+        self.entry_file_path_supervisor.insert(0, 'Вставьте файл с ошибками')
+        self.entry_file_path_supervisor['width'] = 75
+        self.entry_file_path_supervisor.place(x=10, y=276)
+
+        self.button_choose_file_supervisor = tk.Button(self.foreman)
+        self.button_choose_file_supervisor.place(x=500, y=270)
+        self.button_choose_file_supervisor['text'] = 'Выберите файл'
+        self.button_choose_file_supervisor['font'] = 'Arial', 11
+        self.button_choose_file_supervisor['command'] = self.choose_file_supervisor
+
+        self.button_run_inventory = tk.Button(self.foreman)
+        self.button_run_inventory['text'] = 'Начать'
+        self.button_run_inventory['font'] = 'Arial', 11
+        self.button_run_inventory['command'] = self.run_inventory
+        self.button_run_inventory.place(x=50, y=350)
+
+    def choose_file_AT(self):
+        self.file_name_AT = fd.askopenfilename(filetypes=(('Excel files', '.xlsx'),))
+        self.entry_file_path_AT.delete(0, 'end')
+        self.entry_file_path_AT.insert(0, self.file_name_AT)
+
+    def choose_file_supervisor(self):
+        self.file_name_supervisor = fd.askopenfilename(filetypes=(('Excel files', '.xlsx'),))
+        self.entry_file_path_supervisor.delete(0, 'end')
+        self.entry_file_path_supervisor.insert(0, self.file_name_supervisor)
+
+    def open_file_for_foreman(self, file_name):  # foreman
+        sheets = op.load_workbook(file_name).sheetnames
+        if 'СБОРКА' in sheets:
+            self.file_supervisor = op.load_workbook(file_name)  # Открытие файла 'РАБОЧАЯ'
+        else:
+            self.file_AT = op.load_workbook(file_name)  # Открытие файла 'Остатки АТ по партиям
+
+    def run_inventory(self):
+        self.open_file_for_foreman(self.file_name_AT)
+        self.open_file_for_foreman(self.file_name_supervisor)
+        if self.check_button_inventory_cells_report_value.get():
+            inventory.create_file_inventory_cells(self.file_AT, self.box_warehouses.get(), self.box_cell_start.get(),
+                                                  self.box_cell_finish.get())
+        if self.check_button_inventory_supervisor_report_value.get():
+            inventory.create_file_inventory_supervisor(self.file_AT, self.file_supervisor, self.box_warehouses.get(),
+                                                       self.entry_date_start.get_date(), self.entry_date_finish.get_date())
 
 
 app = Application()

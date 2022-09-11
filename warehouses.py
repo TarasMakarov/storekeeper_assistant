@@ -1,3 +1,9 @@
+# warehouses
+warehouse_405 = '405'
+warehouse_406 = '406'
+warehouse_436 = '436'
+warehouse_437 = '437'
+warehouses = [warehouse_405, warehouse_406, warehouse_436, warehouse_437]
 # all cells on all warehouses
 # адреса всех ячеек на всех складах
 cells_all_405 = ['A08-01-51', 'A08-01-52', 'A08-01-53', 'A08-01-61', 'A08-01-62', 'A08-01-63', 'A08-01-71', 'A08-01-72',
