@@ -123,13 +123,17 @@ def create_file_inventory_supervisor(file_AT, file_supervisor, warehouse, date_s
     rows = sheet_active.max_row
     sku_mistake = []
     for i in range(rows, 0, -1):
-        date_mistake = sheet_active.cell(i, 2).value.date()
+        date_mistake = sheet_active.cell(i, 2).value
+        if isinstance(date_mistake, datetime):
+            date_mistake = sheet_active.cell(i, 2).value.date()
+        else:
+            date_mistake = datetime(1, 1, 1).date()
         sku = sheet_active.cell(i, 3).value
         if date_start <= date_mistake <= date_finish:
             if sku is not None:
                 sku_mistake.append(str(sku))
-        else:
-            break
+        # else:
+        #     break
     values_of_cells_for_inventory = []  # список списков со значениями из строк с нужными ячейками
     row_start = 4
     sku_at = file_AT.active.cell(row_start, 4).value

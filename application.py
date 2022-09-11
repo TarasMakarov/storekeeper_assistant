@@ -331,7 +331,7 @@ class Application(tk.Tk):
         self.button_run_inventory['text'] = 'Начать'
         self.button_run_inventory['font'] = 'Arial', 11
         self.button_run_inventory['command'] = self.run_inventory
-        self.button_run_inventory.place(x=50, y=350)
+        self.button_run_inventory.place(x=500, y=350)
 
     def choose_file_AT(self):
         self.file_name_AT = fd.askopenfilename(filetypes=(('Excel files', '.xlsx'),))
