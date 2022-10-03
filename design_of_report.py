@@ -4,10 +4,8 @@
     - font_row_1 - для наименования(заголовка) отчета
     - font_row_2 - для наименования колонок отчета
 """
-
 from openpyxl.styles import (
-    Border, Side,
-    Alignment, Font
+    Alignment, Border, Side, Font
 )
 
 font_row_1 = Font(
@@ -30,6 +28,13 @@ alignment = Alignment(
 alignment_wrap_text = Alignment(
    wrap_text=True
 )
+
+alignment_center_wrap_text = Alignment(
+    horizontal='center',
+    vertical='center',
+    wrap_text=True
+)
+
 
 side = Side(
     border_style="thin",

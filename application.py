@@ -3,7 +3,8 @@ from datetime import datetime
 from tkinter import filedialog as fd
 from tkinter.ttk import Notebook, Combobox
 from tkcalendar import DateEntry
-from babel import numbers
+from tkinter import messagebox as mb
+from babel import numbers  # DON'T DELETE - for auto-py-to-exe
 
 import openpyxl as op
 
@@ -36,6 +37,9 @@ class Application(tk.Tk):
         self.foreman = tk.Frame(self.tabs_control)
         self.tabs_control.add(self.foreman, text='Помощник старшего смены')
         self.tabs_control.pack(fill='both', expand=True)
+
+        self.file_name_bb = ''
+        self.file_name_cb = ''
 
         self.put_widgets_storekeeper()
         self.put_widgets_foreman()
@@ -156,21 +160,30 @@ class Application(tk.Tk):
             self.file_balance_batch = op.load_workbook(file_name)  # Открытие файла 'Остатки АТ по партиям
 
     def run_actions(self):  # storekeeper
+        while self.file_name_bb == '':
+            mb.showwarning(title='Выбор файла', message='Выберите файл "Остатки АТ по партиям"')
+            self.choose_file()
+            return
         self.open_file(self.file_name_bb)  # Остатки АТ по партиям
-        self.open_file(self.file_name_cb)  # Текущие остатки
+        if self.check_button_fill_storage_value.get():
+            while self.file_name_cb == '':
+                mb.showwarning(title='Выбор файла', message='Выберите файл "Текущие остатки (цена, шт., бр., пост.)"')
+                self.choose_file_cb()
+            self.open_file(self.file_name_cb)  # Текущие остатки
+        if self.check_button_fill_storage_value.get():
+            try:
+                maximum = int(self.maximum.get())
+            except ValueError:
+                mb.showwarning(title='Поле должно быть заполнено', message='Впишите максимальный остаток товара на складе отгрузки')
+                return
+            report.create_report(self.file_balance_current, self.file_balance_batch, maximum, warehouses.warehouse_406)
+            report.create_report(self.file_balance_current, self.file_balance_batch, maximum, warehouses.warehouse_437)
         if self.check_button_search_sku_in_two_places_value.get():
             self.duplicates_result = mistake.search_sku_in_two_places(self.file_balance_batch)
         if self.check_button_search_two_or_more_sku_in_one_place_value.get():
             self.wrong_place = mistake.search_two_or_more_sku_in_one_place(self.file_balance_batch)
         if self.check_search_cells_empty_value.get():
             self.cells_empty = mistake.search_cells_empty(self.file_balance_batch)
-        if self.check_button_fill_storage_value.get():
-            # файл 'текущие остатки'
-            report_406 = self.file_balance_current
-            maximum = int(self.maximum.get())
-            report.create_report(report_406, self.file_balance_batch, maximum, '406')
-            report_437 = op.load_workbook(self.file_path_cb)
-            report.create_report(report_437, self.file_balance_batch, maximum, '437')
         self.fill_mistakes()
         self.destroy()
 
@@ -224,7 +237,6 @@ class Application(tk.Tk):
         self.box_cell_finish['values'] = self.cells_in_combobox
         self.box_cell_start.current(0)
         self.box_cell_finish.current(0)
-
 
     def put_widgets_foreman(self):  # foreman
 
@@ -358,7 +370,8 @@ class Application(tk.Tk):
                                                   self.box_cell_finish.get())
         if self.check_button_inventory_supervisor_report_value.get():
             inventory.create_file_inventory_supervisor(self.file_AT, self.file_supervisor, self.box_warehouses.get(),
-                                                       self.entry_date_start.get_date(), self.entry_date_finish.get_date())
+                                                       self.entry_date_start.get_date(),
+                                                       self.entry_date_finish.get_date())
 
 
 app = Application()
