@@ -18,7 +18,7 @@ def fill_rows_of_report(report, values_for_rows):
     row_start = 4  # с этой строки начинается заполнение (выше - шапка отчета)
     for value in values_for_rows:
         if value[0]:
-            height = (int(len(value[0]) / 41) + 1) * 15
+            height = (int(len(value[0]) / 43) + 1) * 15
             report.active.row_dimensions[row_start].height = height
             report.active.cell(row_start, 1).alignment = dor.alignment_wrap_text
         for c in range(1, 8):
@@ -40,7 +40,11 @@ def create_file_inventory_cells(file_at, warehouse, cell_start, cell_finish):
         cells_in_warehouse = w.cells_all_437
     index_start = cells_in_warehouse.index(cell_start)
     index_finish = cells_in_warehouse.index(cell_finish) + 1
-    cells_for_inventory = cells_in_warehouse[index_start:index_finish]
+    if index_start > index_finish:
+        cells_for_inventory = cells_in_warehouse[index_start:]
+        cells_for_inventory.extend(cells_in_warehouse[:index_finish])
+    else:
+        cells_for_inventory = cells_in_warehouse[index_start:index_finish]
     values_of_cells_for_inventory = []  # список списков со значениями из строк с нужными ячейками
     for _ in range(rows - row_start + 1):
         target_cells = file_at.active.cell(row_start, 2).value

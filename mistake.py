@@ -55,26 +55,27 @@ def search_two_or_more_sku_in_one_place(file_balance_batch):
     return cells_duplicate
 
 
-# search empty cells
-# поиск нижних пустых ячеек на складах отгрузки
-def search_cells_empty(file_balance_batch):
+def search_cells_empty(file_at):
     row = 4
-    rows = file_balance_batch.active.max_row - row
+    rows = file_at.active.max_row - row
     cells_busy = []
-    cells_free_406 = []
-    cells_free_437 = []
+    cells_empty_406 = []
+    cells_empty_437 = []
+
+    # создается список занятых ячеек
     for i in range(rows + 1):
-        cell_value = file_balance_batch.active.cell(row, 2).value
+        cell_value = file_at.active.cell(row, 2).value
         if isinstance(cell_value, str):
             temp_list = cell_value.split(', ')
             cells_busy.extend(temp_list)
             row += 1
         else:
             row += 1
-    for c in w.cells_all_406:
-        if c not in cells_busy and int(c[7:]) % 2 == 1:
-            cells_free_406.append(c)
-    for c in w.cells_all_437:
-        if c not in cells_busy and int(c[7:]) % 2 == 1:
-            cells_free_437.append(c)
-    return cells_free_406, cells_free_437
+
+    for c in w.cells_bottom:
+        if c not in cells_busy:
+            if c[0] in 'ABCDEF':
+                cells_empty_437.append(c)
+            else:
+                cells_empty_406.append(c)
+    return cells_empty_406, cells_empty_437
