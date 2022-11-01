@@ -48,11 +48,11 @@ def create_file_inventory_cells(file_at, warehouse, cell_start, cell_finish):
     values_of_cells_for_inventory = []  # список списков со значениями из строк с нужными ячейками
     for _ in range(rows - row_start + 1):
         target_cells = file_at.active.cell(row_start, 2).value
-        if target_cells is not None and len(target_cells) < 10 and target_cells in cells_for_inventory:
+        if target_cells and len(target_cells) < 10 and target_cells in cells_for_inventory:
             values_of_row = add_row_in_inventory(file_at, row_start, column_warehouse)
             values_of_cells_for_inventory.append(values_of_row)
             row_start += 1
-        elif target_cells is not None and len(target_cells) > 9:
+        elif target_cells and len(target_cells) > 9:
             target_cells.split(', ')
             for t in target_cells:
                 if t in cells_for_inventory:
@@ -62,8 +62,9 @@ def create_file_inventory_cells(file_at, warehouse, cell_start, cell_finish):
         else:
             row_start += 1
 
+    values_of_cells_for_inventory.sort(key=lambda s: s[1])
     report_inventory_cells = fill_rows_of_report(report_inventory_cells, values_of_cells_for_inventory)
-    report_inventory_cells = pr.prepare_for_print(report_inventory_cells)
+    pr.prepare_for_print(report_inventory_cells)
     report_inventory_cells.save(
         f'Инвентаризация ячеек {datetime.today().strftime("%d.%m.%y %H_%M_%S")} ({warehouse}).xlsx')
 
@@ -98,7 +99,8 @@ def create_file_inventory_supervisor(file_at, file_supervisor, warehouse, date_s
         row_start += 1
         sku_at = file_at.active.cell(row_start, 4).value
 
+    values_of_cells_for_inventory.sort(key=lambda s: s[1])
     report_inventory_mistakes = fill_rows_of_report(report_inventory_mistakes, values_of_cells_for_inventory)
-    report_inventory_mistakes = pr.prepare_for_print(report_inventory_mistakes)
+    pr.prepare_for_print(report_inventory_mistakes)
     report_inventory_mistakes.save(
         f'Инвентаризация ошибок {datetime.today().strftime("%d.%m.%y %H_%M_%S")} ({warehouse}).xlsx')

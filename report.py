@@ -59,15 +59,37 @@ def create_report(file_bc, file_at, maximum, warehouse):
                 report_refill_warehouse.active.cell(sku_for_replenish[sku_current], 5).value = warehouse_storage_place
                 if len(warehouse_shipping_place) > 1:
                     report_refill_warehouse.active.cell(sku_for_replenish[sku_current], 6).value = \
-                            ', '.join(warehouse_shipping_place[1:])
+                        ', '.join(warehouse_shipping_place[1:])
                 else:
                     report_refill_warehouse.active.cell(sku_for_replenish[sku_current], 6).value = \
-                            warehouse_shipping_place[0]
+                        warehouse_shipping_place[0]
                 warehouse_storage_place = 'пусто'
                 warehouse_shipping_place = ['пусто']
             sku_current = sku_next
             row_start_file_at += 1
 
     pr.prepare_for_print(report_refill_warehouse)
+
+    values_of_cells_for_report_refill = []
+    row_start_report = 3
+    value = report_refill_warehouse.active.cell(row_start_report, 1).value
+    while value:
+        values_of_row = [report_refill_warehouse.active.cell(row_start_report, 1).value,
+                         report_refill_warehouse.active.cell(row_start_report, 2).value,
+                         report_refill_warehouse.active.cell(row_start_report, 3).value,
+                         report_refill_warehouse.active.cell(row_start_report, 4).value,
+                         report_refill_warehouse.active.cell(row_start_report, 5).value,
+                         report_refill_warehouse.active.cell(row_start_report, 6).value]
+        values_of_cells_for_report_refill.append(values_of_row)
+        row_start_report += 1
+        value = report_refill_warehouse.active.cell(row_start_report, 1).value
+
+    values_of_cells_for_report_refill.sort(key=lambda c: c[5])
+
+    row_start_report = 3
+    for i in range(len(values_of_cells_for_report_refill)):
+        for j in range(1, 7):
+            report_refill_warehouse.active.cell(row_start_report, j).value = values_of_cells_for_report_refill[i][j - 1]
+        row_start_report += 1
 
     report_refill_warehouse.save(f'Отчет от {datetime.today().strftime("%d.%m.%y %H_%M_%S")} ({warehouse}).xlsx')

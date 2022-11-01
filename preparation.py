@@ -57,7 +57,7 @@ def create_report_refill_warehouse_template(warehouse):
     report_refill_warehouse_template.active.row_dimensions[1].height = 36
     report_refill_warehouse_template.active.row_dimensions[2].height = 30
 
-    column_width = {'A': 12, 'B': 50, 'C': 9, 'D': 9, 'E': 12, 'F': 12}
+    column_width = {'A': 12, 'B': 75, 'C': 9, 'D': 9, 'E': 12, 'F': 12}
     for column, width in column_width.items():
         report_refill_warehouse_template.active.column_dimensions[column].width = width
 
@@ -95,4 +95,3 @@ def prepare_for_print(report):
             report.active.cell(row, i).border = dor.border
         row += 1
         values_of_row = [report.active.cell(row, col).value for col in range(1, column_end + 1)]
-    return report
