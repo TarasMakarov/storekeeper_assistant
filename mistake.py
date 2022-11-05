@@ -3,18 +3,18 @@ import warehouses as w
 
 # search sku in two and more places
 # поиск товара, размещенного в двух и более ячейках отгрузки
-def search_sku_in_two_places(file_balance_batch):
+def search_sku_in_two_places(file_at):
     row = 4
-    rows = file_balance_batch.active.max_row - row
+    rows = file_at.active.max_row - row
     duplicates_temp = dict()
     for i in range(rows + 1):
-        cell_value = file_balance_batch.active.cell(row, 2).value
+        cell_value = file_at.active.cell(row, 2).value
         if isinstance(cell_value, str):
             temp_list = cell_value.split(', ')
         else:
             row += 1
             continue
-        sku = file_balance_batch.active.cell(row, 4).value.split('.')[0]  # sku without batch
+        sku = file_at.active.cell(row, 4).value.split('.')[0]  # sku without batch
         if sku not in duplicates_temp.keys():
             duplicates_temp[sku] = temp_list
             row += 1
@@ -32,13 +32,13 @@ def search_sku_in_two_places(file_balance_batch):
 
 # search two or more sku in one place
 # поиск одного товара, размещенного в двух и более местах
-def search_two_or_more_sku_in_one_place(file_balance_batch):
+def search_two_or_more_sku_in_one_place(file_at):
     row = 4
     col = 1
-    rows = file_balance_batch.active.max_row - row
+    rows = file_at.active.max_row - row
     cells_duplicate_temp = dict()
     for i in range(rows + 1):
-        cell_value = file_balance_batch.active.cell(row, col).value
+        cell_value = file_at.active.cell(row, col).value
         if isinstance(cell_value, str):
             temp_list = cell_value.split(', ')
             for t in temp_list:

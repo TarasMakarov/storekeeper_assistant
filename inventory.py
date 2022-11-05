@@ -7,7 +7,9 @@ import preparation as pr
 
 
 def add_row_in_inventory(file_at, row, column_warehouse):
-    values_of_row = [file_at.active.cell(row, 1).value, file_at.active.cell(row, 2).value,
+    value_2 = file_at.active.cell(row, 2).value
+    values_of_row = [file_at.active.cell(row, 1).value,
+                     value_2 if value_2 else 'пусто',
                      file_at.active.cell(row, 4).value, file_at.active.cell(row, 5).value,
                      file_at.active.cell(row, 6).value, file_at.active.cell(row, column_warehouse - 1).value,
                      file_at.active.cell(row, column_warehouse).value]
