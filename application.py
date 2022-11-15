@@ -1,5 +1,4 @@
 import tkinter as tk
-from datetime import datetime
 from tkinter import filedialog as fd
 from tkinter.ttk import Notebook, Combobox
 from tkcalendar import DateEntry
@@ -46,9 +45,6 @@ class Application(tk.Tk):
 
     def put_widgets_storekeeper(self):  # storekeeper
 
-        OPERATION_WAS_NOT_PERFORMED = {'Данная операция не выполнялась.': ''}
-        self.MISTAKES_NOT_FOUND = {'Ошибки не обнаружены': ''}
-
         self.entry_file_path = tk.Entry(self.storekeeper)
         self.entry_file_path.insert(0, 'Вставьте файл отчета "Остатки АТ по партиям"')
         self.entry_file_path['width'] = 75
@@ -74,7 +70,6 @@ class Application(tk.Tk):
         self.check_button_search_sku_in_two_places[
             'text'] = '  Найти товар, размещенный в двух и более ячейках отгрузки'
         self.check_button_search_sku_in_two_places.place(x=10, y=80)
-        self.duplicates_result = OPERATION_WAS_NOT_PERFORMED
 
         self.check_button_search_two_or_more_sku_in_one_place_value = tk.IntVar()
         self.check_button_search_two_or_more_sku_in_one_place = tk.Checkbutton(
@@ -85,7 +80,6 @@ class Application(tk.Tk):
         self.check_button_search_two_or_more_sku_in_one_place[
             'text'] = '  Найти ячейки, в которых больше одного вида товара'
         self.check_button_search_two_or_more_sku_in_one_place.place(x=10, y=110)
-        self.wrong_place = OPERATION_WAS_NOT_PERFORMED
 
         self.check_search_cells_empty_value = tk.IntVar()
         self.check_search_cells_empty = tk.Checkbutton(
@@ -95,7 +89,6 @@ class Application(tk.Tk):
             onvalue=1)
         self.check_search_cells_empty['text'] = '  Найти пустые нижние ячейки на складах отгрузки'
         self.check_search_cells_empty.place(x=10, y=140)
-        self.cells_empty = OPERATION_WAS_NOT_PERFORMED
 
         self.header_2 = tk.Label(self.storekeeper)
         self.header_2['text'] = 'Если хотите сформировать отчет для пополнения склада отгрузки, \n поставьте галочку ' \
@@ -178,55 +171,16 @@ class Application(tk.Tk):
                 return
             report.create_report(self.file_balance_current, self.file_balance_batch, maximum, warehouses.warehouse_406)
             report.create_report(self.file_balance_current, self.file_balance_batch, maximum, warehouses.warehouse_437)
+        a = b = c = 0
         if self.check_button_search_sku_in_two_places_value.get():
-            self.duplicates_result = mistake.search_sku_in_two_places(self.file_balance_batch)
+            a = 'a'
         if self.check_button_search_two_or_more_sku_in_one_place_value.get():
-            self.wrong_place = mistake.search_two_or_more_sku_in_one_place(self.file_balance_batch)
+            b = 'b'
         if self.check_search_cells_empty_value.get():
-            self.cells_empty = mistake.search_cells_empty(self.file_balance_batch)
-        self.fill_mistakes()
+            c = 'c'
+        mistake.fill_mistakes(self.file_balance_batch, a, b, c)
         self.destroy()
 
-    def fill_mistakes(self):  # storekeeper
-        row = 1
-        col = 1
-        result = op.Workbook()
-        result.remove(result.active)
-        sheet_1 = result.create_sheet('1')
-        sheet_1.cell(row=row, column=col).value = 'Товар, размещенный в двух и более ячейках отгрузки'
-        if not self.duplicates_result:
-            self.duplicates_result = self.MISTAKES_NOT_FOUND
-        for k, v in self.duplicates_result.items():
-            row += 1
-            sheet_1.cell(row=row, column=col).value = k
-            sheet_1.cell(row=row, column=col + 1).value = ', '.join(v)
-
-        row += 2
-        sheet_1.cell(row=row, column=col).value = 'Ячейки, в которых больше одного вида товара'
-        if not self.wrong_place:
-            self.wrong_place = self.MISTAKES_NOT_FOUND
-        for key, value in self.wrong_place.items():
-            row += 1
-            sheet_1.cell(row=row, column=col).value = key
-            sheet_1.cell(row=row, column=col + 1).value = value
-
-        row += 2
-        sheet_1.cell(row=row, column=col).value = 'Свободные ячейки'
-        row += 1
-        sheet_1.cell(row=row, column=col).value = 406
-        sheet_1.cell(row=row, column=col + 1).value = 437
-        row_406 = row_437 = row + 1
-        if self.check_search_cells_empty_value.get() == 0:
-            sheet_1.cell(row=row_406, column=col).value = next(iter(self.cells_empty))
-        else:
-            for c_406 in self.cells_empty[0]:
-                sheet_1.cell(row=row_406, column=col).value = c_406
-                row_406 += 1
-            for c_437 in self.cells_empty[1]:
-                sheet_1.cell(row=row_437, column=col + 1).value = c_437
-                row_437 += 1
-
-        result.save(f'Ошибки от {datetime.today().strftime("%d.%m.%y %H_%M_%S")}.xlsx')
 
     # Выпадающий список ячеек зависит от номера выбранного склада  # foreman
     def select_cells(self, *args):
@@ -240,9 +194,8 @@ class Application(tk.Tk):
 
     def put_widgets_foreman(self):  # foreman
 
-        self.warehouses_and_cells = {
-            warehouses.warehouse_405: warehouses.cells_all_405, warehouses.warehouse_406: warehouses.cells_all_406,
-            warehouses.warehouse_436: warehouses.cells_all_436, warehouses.warehouse_437: warehouses.cells_all_437}
+        self.warehouses_and_cells = {warehouses.warehouse_406: warehouses.cells_all_406,
+            warehouses.warehouse_437: warehouses.cells_all_437}
 
         self.check_button_inventory_cells_report_value = tk.IntVar()
         self.check_button_inventory_cells_report = tk.Checkbutton(

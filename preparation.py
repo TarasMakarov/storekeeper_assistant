@@ -81,6 +81,19 @@ def create_report_refill_warehouse_template(warehouse):
     return report_refill_warehouse_template
 
 
+def create_report_mistakes_template(mistakes: dict):
+    report_mistakes_template = op.Workbook()
+    report_mistakes_template.remove(report_mistakes_template.active)
+    sheet_1 = report_mistakes_template.create_sheet('1')
+
+    row = col = 1
+    for k, v in mistakes.items():
+        sheet_1.cell(row=row, column=col).value = k
+        row += v + 2
+
+    return report_mistakes_template
+
+
 def prepare_for_print(report):
     report.active.page_setup.orientation = report.active.ORIENTATION_LANDSCAPE
     report.active.page_setup.paperSize = report.active.PAPERSIZE_A4
